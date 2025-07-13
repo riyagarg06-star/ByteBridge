@@ -1,0 +1,29 @@
+.editor-box {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.editor-box textarea {
+  width: 100%;
+  padding: 10px;
+  font-family: monospace;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  resize: vertical;
+}
+
+.editor-box button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.editor-box button:hover {
+  background-color: #45a049;
+}

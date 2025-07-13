@@ -1,0 +1,99 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(to right, #2c5364, #203a43, #0f2027);
+  color: white;
+  text-align: center;
+}
+
+.home-title {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.home-subtitle {
+  font-size: 1.5rem;
+  margin-bottom: 40px;
+  color: #ccc;
+}
+
+.start-btn {
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #00bcd4;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+  background-color: #0097a7;
+  transform: scale(1.05);
+}
+
+.join-room-section {
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.room-input {
+  padding: 10px;
+  font-size: 16px;
+  width: 250px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 4px;
+}
+
+.join-btn {
+  padding: 10px 15px;
+  background-color: #5c67f2;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.join-btn:hover {
+  background-color: #3f51b5;
+  transform: scale(1.05);
+}
+
+/* Add shadow to both buttons */
+.start-btn,
+.join-btn {
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .room-input {
+    width: 80%;
+    margin-bottom: 10px;
+  }
+
+  .join-room-section {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .join-btn {
+    width: 80%;
+  }
+
+  .start-btn {
+    width: 80%;
+    margin-top: 10px;
+  }
+}

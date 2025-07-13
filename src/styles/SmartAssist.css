@@ -1,0 +1,33 @@
+.smart-assist {
+  background-color: #f1f1f1;
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.smart-assist input {
+  width: 70%;
+  padding: 10px;
+  margin-right: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.smart-assist button {
+  padding: 10px 15px;
+  background-color: #00bcd4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.smart-assist button:hover {
+  background-color: #0097a7;
+}
+
+.assist-response {
+  margin-top: 15px;
+  font-style: italic;
+  color: #333;
+}

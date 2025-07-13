@@ -1,0 +1,35 @@
+.video-chat {
+  background-color: #eef2f7;
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.video-box {
+  border: 2px dashed #bbb;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  font-size: 14px;
+  border-radius: 8px;
+  margin-top: 10px;
+  position: relative;
+}
+
+.join-call-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.join-call-btn:hover {
+  background-color: #125a9c;
+}
