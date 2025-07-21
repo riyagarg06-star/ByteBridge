@@ -11,8 +11,8 @@ const VideoChat = () => {
   const peersRef = useRef({});
   const [stream, setStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState([]);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
 
   const addRemoteStream = useCallback((remoteStream, userId) => {
     setRemoteStreams((prev) => {
@@ -21,48 +21,54 @@ const VideoChat = () => {
     });
   }, []);
 
-  const createPeer = useCallback((userToSignal, stream) => {
-    const peer = new Peer({
-      initiator: true,
-      trickle: false,
-      stream,
-    });
-
-    peer.on("signal", (signal) => {
-      socket.emit("send-signal", {
-        to: userToSignal,
-        signalData: signal,
+  const createPeer = useCallback(
+    (userToSignal, stream) => {
+      const peer = new Peer({
+        initiator: true,
+        trickle: false,
+        stream,
       });
-    });
 
-    peer.on("stream", (remoteStream) => {
-      addRemoteStream(remoteStream, userToSignal);
-    });
-
-    return peer;
-  }, [addRemoteStream]);
-
-  const addPeer = useCallback((userId, stream, incomingSignal) => {
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream,
-    });
-
-    peer.on("signal", (signal) => {
-      socket.emit("return-signal", {
-        to: userId,
-        signalData: signal,
+      peer.on("signal", (signal) => {
+        socket.emit("send-signal", {
+          to: userToSignal,
+          signalData: signal,
+        });
       });
-    });
 
-    peer.on("stream", (remoteStream) => {
-      addRemoteStream(remoteStream, userId);
-    });
+      peer.on("stream", (remoteStream) => {
+        addRemoteStream(remoteStream, userToSignal);
+      });
 
-    peer.signal(incomingSignal);
-    return peer;
-  }, [addRemoteStream]);
+      return peer;
+    },
+    [addRemoteStream]
+  );
+
+  const addPeer = useCallback(
+    (userId, stream, incomingSignal) => {
+      const peer = new Peer({
+        initiator: false,
+        trickle: false,
+        stream,
+      });
+
+      peer.on("signal", (signal) => {
+        socket.emit("return-signal", {
+          to: userId,
+          signalData: signal,
+        });
+      });
+
+      peer.on("stream", (remoteStream) => {
+        addRemoteStream(remoteStream, userId);
+      });
+
+      peer.signal(incomingSignal);
+      return peer;
+    },
+    [addRemoteStream]
+  );
 
   useEffect(() => {
     const init = async () => {
@@ -71,7 +77,6 @@ const VideoChat = () => {
           video: true,
           audio: true,
         });
-
         setStream(currentStream);
         if (myVideo.current) {
           myVideo.current.srcObject = currentStream;
@@ -84,10 +89,6 @@ const VideoChat = () => {
             const peer = createPeer(userId, currentStream);
             peersRef.current[userId] = peer;
           });
-        });
-
-        socket.on("user-joined", (userId) => {
-          // user joined, wait for their signal
         });
 
         socket.on("receive-signal", ({ from, signalData }) => {
@@ -110,8 +111,8 @@ const VideoChat = () => {
           }
         });
       } catch (err) {
-        console.error("Media access error:", err);
-        alert("⚠️ Please allow camera/mic access.");
+        console.error("Error accessing camera/mic:", err);
+        alert("⚠️ Please allow camera and mic access or check if your device has one.");
       }
     };
 
@@ -123,36 +124,34 @@ const VideoChat = () => {
     };
   }, [roomId, createPeer, addPeer]);
 
-  // Toggle mic on/off
-  const toggleMic = () => {
-    if (!stream) return;
-    const audioTrack = stream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      setMicOn(audioTrack.enabled);
-    }
+  const toggleMute = () => {
+    stream.getAudioTracks().forEach((track) => {
+      track.enabled = !track.enabled;
+    });
+    setIsMuted(!isMuted);
   };
 
-  // Toggle cam on/off
-  const toggleCam = () => {
-    if (!stream) return;
-    const videoTrack = stream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      setCamOn(videoTrack.enabled);
-    }
+  const toggleCamera = () => {
+    stream.getVideoTracks().forEach((track) => {
+      track.enabled = !track.enabled;
+    });
+    setIsCameraOff(!isCameraOff);
   };
 
   return (
     <div className="video-chat">
-      <h2>ByteBridge Video Chat</h2>
-      <div className="videos" style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+      <h2 style={{ textAlign: "center" }}>🎥 ByteBridge Video Chat</h2>
+
+      <div
+        className="videos"
+        style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "center" }}
+      >
         <video
           ref={myVideo}
           autoPlay
           muted
           playsInline
-          style={{ width: "250px", border: "2px solid #00f", borderRadius: "8px" }}
+          style={{ width: "250px", border: "2px solid blue", borderRadius: "10px" }}
         />
         {remoteStreams.map(({ stream, id }) => (
           <video
@@ -162,21 +161,32 @@ const VideoChat = () => {
             ref={(video) => {
               if (video && !video.srcObject) video.srcObject = stream;
             }}
-            style={{ width: "250px", border: "2px solid green", borderRadius: "8px" }}
+            style={{ width: "250px", border: "2px solid green", borderRadius: "10px" }}
           />
         ))}
       </div>
 
-      <div style={{ marginTop: "15px" }}>
-        <button onClick={toggleMic} style={{ marginRight: "10px" }}>
-          {micOn ? "Mute Mic 🎤" : "Unmute Mic 🔇"}
+      <div style={{ textAlign: "center", marginTop: "20px" }}>
+        <button onClick={toggleMute} style={buttonStyle}>
+          {isMuted ? "Unmute" : "Mute"}
         </button>
-        <button onClick={toggleCam}>
-          {camOn ? "Turn Off Camera 📷" : "Turn On Camera 🚫"}
+        <button onClick={toggleCamera} style={buttonStyle}>
+          {isCameraOff ? "Turn Camera On" : "Turn Camera Off"}
         </button>
       </div>
     </div>
   );
+};
+
+const buttonStyle = {
+  margin: "10px",
+  padding: "10px 20px",
+  fontSize: "16px",
+  borderRadius: "8px",
+  border: "none",
+  cursor: "pointer",
+  backgroundColor: "#007bff",
+  color: "white",
 };
 
 export default VideoChat;

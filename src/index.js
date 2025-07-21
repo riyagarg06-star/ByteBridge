@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import MainRouter from "./MainRouter"; // ab App.js ki jagah MainRouter use ho raha hai
+import './index.css';
+import MainRouter from "./MainRouter"; // ✅ Your custom routing
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
