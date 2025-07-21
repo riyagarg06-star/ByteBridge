@@ -2,90 +2,89 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
-
-const SECRET_KEY = "bytebridge_secure_key"; // You can change this
 
 const app = express();
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
+app.use(cors());
 
 const server = http.createServer(app);
-
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
-    credentials: true,
+    origin: "http://localhost:3000", // frontend origin
+    methods: ["GET", "POST"],
   },
 });
 
-// ✅ LOGIN route to issue token
-app.post("/api/login", (req, res) => {
-  const { username } = req.body;
+const rooms = {}; // { roomId: { users: Set(), spectators: Set() } }
 
-  if (!username) {
-    return res.status(400).json({ error: "Username is required" });
-  }
-
-  const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: "1h" });
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: false, // true if using https
-    sameSite: "Lax",
-  });
-  res.json({ success: true });
-});
-
-// ✅ Middleware for session validation
-const verifyToken = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) return res.status(401).json({ error: "No token" });
-
-  try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
-  }
-};
-
-// ✅ Protected test route
-app.get("/api/protected", verifyToken, (req, res) => {
-  res.json({ message: `Hello ${req.user.username}` });
-});
-
-// ✅ SOCKET.IO logic with room joining
 io.on("connection", (socket) => {
-  console.log("🔌 New user connected:", socket.id);
+  console.log("🔌 New client connected:", socket.id);
 
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
-    const usersInRoom = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-    const otherUsers = usersInRoom.filter((id) => id !== socket.id);
+    if (!rooms[roomId]) {
+      rooms[roomId] = { users: new Set(), spectators: new Set() };
+    }
+    rooms[roomId].users.add(socket.id);
+
+    const otherUsers = [...rooms[roomId].users].filter((id) => id !== socket.id);
     socket.emit("all-users", otherUsers);
 
-    socket.to(roomId).emit("user-joined", socket.id);
+    socket.to(roomId).emit("user-joined", { callerId: socket.id });
+  });
 
-    socket.on("send-signal", ({ to, signalData }) => {
-      io.to(to).emit("receive-signal", { from: socket.id, signalData });
-    });
+  socket.on("join-as-spectator", (roomId) => {
+    socket.join(roomId);
+    if (!rooms[roomId]) {
+      rooms[roomId] = { users: new Set(), spectators: new Set() };
+    }
+    rooms[roomId].spectators.add(socket.id);
+    console.log(`👀 Spectator joined room ${roomId}: ${socket.id}`);
+  });
 
-    socket.on("return-signal", ({ to, signalData }) => {
-      io.to(to).emit("receive-returned-signal", {
-        from: socket.id,
-        signalData,
-      });
+  socket.on("send-signal", ({ to, signalData }) => {
+    io.to(to).emit("receive-signal", {
+      from: socket.id,
+      signalData,
     });
+  });
 
-    socket.on("disconnect", () => {
-      socket.to(roomId).emit("user-disconnected", socket.id);
+  socket.on("return-signal", ({ to, signalData }) => {
+    io.to(to).emit("receiving-returned-signal", {
+      id: socket.id,
+      signal: signalData,
     });
+  });
+
+  // Handle signal sent by spectator to peer
+  socket.on("spectator-return-signal", ({ to, signal }) => {
+    io.to(to).emit("spectator-signal", {
+      from: socket.id,
+      signal,
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+
+    for (const roomId in rooms) {
+      const room = rooms[roomId];
+
+      if (room.users.has(socket.id)) {
+        room.users.delete(socket.id);
+        socket.to(roomId).emit("user-disconnected", socket.id);
+      }
+
+      if (room.spectators.has(socket.id)) {
+        room.spectators.delete(socket.id);
+      }
+
+      if (room.users.size === 0 && room.spectators.size === 0) {
+        delete rooms[roomId]; // clean up empty room
+      }
+    }
   });
 });
 
 server.listen(3001, () => {
-  console.log("🚀 Server running on http://localhost:3001");
+  console.log("🚀 Signaling server running on http://localhost:3001");
 });
